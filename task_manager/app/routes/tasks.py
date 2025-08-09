@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from .. import db
 from ..models import Task, Project, User
 from datetime import datetime
-from ..tasks_email import send_task_notification
+# Email/Celery notifications disabled
 
 VALID_STATUSES = {"todo", "in_progress", "done"}
 VALID_PRIORITIES = {"low", "medium", "high"}
@@ -93,12 +93,7 @@ def create_task():
     db.session.add(t)
     db.session.commit()
 
-    # Notify if assigned
-    if t.assigned_to:
-        try:
-            send_task_notification.delay(t.id, 'assigned')
-        except Exception:
-            pass
+    # Notification disabled
 
     return jsonify(task_to_dict(t, include_refs=True)), 201
 
@@ -204,14 +199,7 @@ def update_task(task_id: int):
 
     db.session.commit()
 
-    # Enqueue notifications
-    try:
-        if prev_assigned != t.assigned_to and t.assigned_to:
-            send_task_notification.delay(t.id, 'assigned')
-        if prev_status != t.status and t.assigned_to:
-            send_task_notification.delay(t.id, 'status_changed')
-    except Exception:
-        pass
+    # Notifications disabled
 
     return jsonify(task_to_dict(t, include_refs=True)), 200
 
