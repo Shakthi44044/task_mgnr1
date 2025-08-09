@@ -1,0 +1,91 @@
+services:
+  api:
+    build: .
+    container_name: taskmgr-api
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/taskmanager
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SECRET_KEY: dev-secret
+      JWT_SECRET_KEY: dev-jwt-secret
+      MAIL_SERVER: smtp
+      MAIL_PORT: "1025"
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      MAIL_USE_TLS: "false"
+      MAIL_USE_SSL: "false"
+      MAIL_DEFAULT_SENDER: noreply@taskmanager.local
+    ports:
+      - "5000:5000"
+  worker:
+    build: .
+    container_name: taskmgr-worker
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/taskmanager
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SECRET_KEY: dev-secret
+      JWT_SECRET_KEY: dev-jwt-secret
+      MAIL_SERVER: smtp
+      MAIL_PORT: "1025"
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      MAIL_USE_TLS: "false"
+      MAIL_USE_SSL: "false"
+      MAIL_DEFAULT_SENDER: noreply@taskmanager.local
+    command: ["celery", "-A", "task_manager.celery_app.celery", "worker", "-l", "info"]
+  beat:
+    build: .
+    container_name: taskmgr-beat
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/taskmanager
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SECRET_KEY: dev-secret
+      JWT_SECRET_KEY: dev-jwt-secret
+      MAIL_SERVER: smtp
+      MAIL_PORT: "1025"
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      MAIL_USE_TLS: "false"
+      MAIL_USE_SSL: "false"
+      MAIL_DEFAULT_SENDER: noreply@taskmanager.local
+    command: ["celery", "-A", "task_manager.celery_app.celery", "beat", "-l", "info"]
+  db:
+    image: postgres:16-alpine
+    container_name: taskmgr-db
+    environment:
+      POSTGRES_DB: taskmanager
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:7-alpine
+    container_name: taskmgr-redis
+    ports:
+      - "6379:6379"
+  smtp:
+    image: mailhog/mailhog
+    container_name: taskmgr-mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+volumes:
+  pgdata: {}
